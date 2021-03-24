@@ -21,11 +21,10 @@ jobs:
               --template-file template.yml \
               --stack-name prod-${CIRCLE_WORKFLOW_ID}
       - run: return 1
-      - destroy environment
-        when on_fail
-
+      - Destroy environment
+        when: on_fail
 
 workflows:
   my_workflow:
     jobs:
-      create_infrastructure
+      - create_infrastructure
