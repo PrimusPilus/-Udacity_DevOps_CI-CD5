@@ -25,6 +25,7 @@ jobs:
               --stack-name prod-${CIRCLE_WORKFLOW_ID}
       - run: return 1
       - destroyenvironment
+        exit 0
         
         
 workflows:
