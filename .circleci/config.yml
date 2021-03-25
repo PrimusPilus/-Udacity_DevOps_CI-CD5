@@ -24,7 +24,7 @@ jobs:
               --template-file template.yml \
               --stack-name prod-${CIRCLE_WORKFLOW_ID}
       - run: return 1
-      - Destroy environment
+      - Destroy_environment
         
         
 workflows:
