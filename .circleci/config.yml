@@ -23,7 +23,7 @@ jobs:
             aws cloudformation deploy \
               --template-file .circleci/template.yml \
               --stack-name prod-${CIRCLE_WORKFLOW_ID}
-      - run: return 1
+      
       - destroyenvironment
         
         
