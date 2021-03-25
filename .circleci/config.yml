@@ -8,6 +8,7 @@ commands:
           when: on_fail
           command: |
             aws cloudformation delete-stack --stack-name prod-${CIRCLE_WORKFLOW_ID}
+            exit 1
           
 
 
@@ -24,7 +25,7 @@ jobs:
               --template-file template.yml \
               --stack-name prod-${CIRCLE_WORKFLOW_ID}
       - run: return 1
-      - Destroy environment
+      - Destroy_environment
         
         
 workflows:
