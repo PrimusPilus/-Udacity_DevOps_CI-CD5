@@ -1,32 +1,66 @@
 version: 2.1
+defaults: &defaults
+  docker:
+    - image: amazon/aws-cli
+
 jobs:
   create_and_deploy_front_end:
-    docker:
-      - image: amazon/aws-cli
+    <<: *defaults
     steps:
       - checkout
       - run: |
-          aws cloudformation deploy \
-            --template-file bucket.yml \
-            --stack-name "${CIRCLE_WORKFLOW_ID}" \
-            --parameter-overrides NAME="${CIRCLE_WORKFLOW_ID}"
-      - run: aws s3 sync . s3://"${CIRCLE_WORKFLOW_ID}" --delete
+              aws cloudformation deploy \
+                --template-file bucket.yml \
+                --stack-name "eses-${CIRCLE_WORKFLOW_ID:0:7}" \
+                --parameter-overrides PipelineID="eses-${CIRCLE_WORKFLOW_ID:0:7}"
+      - run: aws s3 cp index.html s3://eses-${CIRCLE_WORKFLOW_ID:0:7}/index.html
+
+  get_last_deployment_id:
+    <<: *defaults
+    steps:
+      - checkout
+      - run: |
+              yum install -y tar gzip
+              aws cloudformation \
+                list-exports --query "Exports[?Name==\`PipelineID\`].Value" \
+                --no-paginate --output text > ~/old_id.txt
+              cat ~/old_id.txt
+      - persist_to_workspace:
+          root: ~/
+          paths:
+            - old_id.txt
 
   promote_to_production:
-    docker:
-      - image: amazon/aws-cli
+    <<: *defaults
     steps:
       - checkout
       - run: |
-          aws cloudformation deploy \
-            --template-file cloudformation.yml \
-            --stack-name cloudfront \
-            --parameter-overrides PipelineID="${CIRCLE_WORKFLOW_ID}"
-
-
-  workflows:
-    default:
-      jobs:
-        - create_and_deploy_front_end
-        - promote_to_production
-            requires: [create_and_deploy_front_end]
+              aws cloudformation deploy \
+                --template-file cloudfront.yml \
+                --stack-name production-distro \
+                --parameter-overrides PipelineID="eses-${CIRCLE_WORKFLOW_ID:0:7}"
+  clean_up_old_front_end:
+    <<: *defaults
+    steps:
+      - checkout
+      - run: |
+              yum install -y tar gzip      
+      - attach_workspace:
+          at: ~/
+      - run: |
+              PreviousPipelineID=`cat ~/old_id.txt`
+              aws s3 rm "s3://${PreviousPipelineID}" --recursive
+              aws cloudformation delete-stack --stack-name "${PreviousPipelineID}"
+workflows:
+  create_and_deploy_front_end:
+    jobs:
+      - create_and_deploy_front_end
+      - get_last_deployment_id:
+          requires:
+            - "create_and_deploy_front_end"
+      - promote_to_production:
+          requires:
+            - "get_last_deployment_id"
+      - clean_up_old_front_end:
+          requires:
+            - "promote_to_production"
