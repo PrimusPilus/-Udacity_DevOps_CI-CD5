@@ -1,10 +1,11 @@
 version: 2.1
 
 commands:
-  destroy_environment:
+  Destroy_environment:
     steps:
       - run:
           name: Destroy environment
+          when: on_fail
           command: |
             aws cloudformation delete-stack --stack-name prod-${CIRCLE_WORKFLOW_ID}
           
@@ -24,7 +25,7 @@ jobs:
               --stack-name prod-${CIRCLE_WORKFLOW_ID}
       - run: return 1
       - Destroy environment
-        when: on_fail
+        
         
 workflows:
   my_workflow:  
